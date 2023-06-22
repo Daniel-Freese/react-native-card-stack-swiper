@@ -12,12 +12,11 @@ import {
 
 const { height, width } = Dimensions.get('window');
 
+const getDistance = (x, y) => {
+  return Math.hypot(x, y);
+}
+
 class CardStack extends Component {
-
-  static distance(x, y) {
-    return Math.hypot(x, y);
-  }
-
   constructor(props) {
     super(props);
     this.state = {
@@ -30,7 +29,6 @@ class CardStack extends Component {
       cards: [],
       touchStart: 0,
     };
-    this.distance = this.constructor.distance;
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponder: (evt, gestureState) => false,
       onStartShouldSetPanResponderCapture: (evt, gestureState) => false,
@@ -61,7 +59,7 @@ class CardStack extends Component {
         const movedY = gestureState.moveY - gestureState.y0;
         this.props.onSwipe(movedX, movedY);
         const { verticalSwipe, horizontalSwipe } = this.props;
-        const dragDistance = this.distance((horizontalSwipe) ? gestureState.dx : 0, (verticalSwipe) ? gestureState.dy : 0);
+        const dragDistance = getDistance((horizontalSwipe) ? gestureState.dx : 0, (verticalSwipe) ? gestureState.dy : 0);
         this.state.dragDistance.setValue(dragDistance);
         this.state.drag.setValue({ x: (horizontalSwipe) ? gestureState.dx : 0, y: (verticalSwipe) ? gestureState.dy : 0 });
         props.onMove([gestureState.dx, gestureState.dy])
@@ -102,7 +100,6 @@ class CardStack extends Component {
 
           const swipeDirection = (gestureState.dy < 0) ? height * -1 : height;
           if (swipeDirection < 0 && !disableTopSwipe) {
-
             this._nextCard('top', gestureState.dx, swipeDirection, this.props.duration);
           }
           else if (swipeDirection > 0 && !disableBottomSwipe) {
@@ -153,18 +150,16 @@ class CardStack extends Component {
   }
 
   _isSameChildren(a, b) {
-    if (typeof a != typeof b) return false;
-    if (typeof a === 'undefined') return false;
-    if (Array.isArray(a) && Array.isArray(b)) {
-      if (a.length != b.length) return false;
-      for (let i in a) {
-        if (a[i].key != b[i].key) { return false }
-      }
-      return true;
-    }
-    if (a.key !== b.key) return false;
-
-    return true
+    // check for same type or type undefined
+    if (typeof a != typeof b || typeof a === 'undefined') return false;
+    // check for same key
+    if (a.key && b.key) return a.key === b.key;
+    // check for array
+    if (!(Array.isArray(a) && Array.isArray(b))) return false;
+    // check for array length
+    if (a.length == b.length) return false;
+    // check for same items
+    return a.every((item, index) => { return item.key === b[index].key });
   }
 
   initDeck() {
@@ -396,7 +391,7 @@ class CardStack extends Component {
   render() {
 
     const { secondCardZoom, renderNoMoreCards, renderOverlay } = this.props;
-    const { drag, dragDistance, cardA, cardB, topCard, sindex } = this.state;
+    const { drag, dragDistance, cardA, cardB, topCard } = this.state;
 
     const scale = dragDistance.interpolate({
       inputRange: [0, 10, 220],
